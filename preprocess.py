@@ -5,7 +5,7 @@ import librosa  # Importa o librosa para análise e manipulação de áudio.
 import matplotlib.pyplot as plt  # Importa o Matplotlib para plotar e salvar imagens.
 from tqdm import tqdm  # Importa tqdm para exibir barras de progresso em loops.
 from librosa import feature as audio  # Importa o módulo de features do librosa, renomeado como 'audio' para conveniência.
-
+import whisper
 
 """
 Estrutura do conjunto de dados AVLips:
@@ -34,6 +34,15 @@ def get_spectrogram(audio_file): # Função para gerar e salvar um Mel-espectrog
     mel = librosa.power_to_db(audio.melspectrogram(y=data, sr=sr), ref=np.min)  # Computa o Mel-espectrograma e converte para dB.
     plt.imsave("./temp/mel.png", mel)  # Salva o espectrograma como uma imagem PNG.
 
+def transcribe_audio(audio_file):
+    """Transcreve o áudio usando o Whisper."""
+    try:
+        model = whisper.load_model("base")  # Carrega o modelo Whisper (escolha o tamanho apropriado)
+        result = model.transcribe(audio_file)  # Realiza a transcrição do arquivo de áudio
+        return result["text"]  # Retorna o texto da transcrição
+    except Exception as e:  # Captura exceções que possam ocorrer durante a transcrição
+        print(f"Erro ao transcrever o áudio {audio_file}: {e}")  # Imprime uma mensagem de erro se ocorrer alguma exceção
+        return ""  # Retorna uma string vazia se ocorrer um erro
 
 def run():  # Função principal para pré-processar o conjunto de dados.
     i = 0  # Contador para o número de conjuntos de dados processados.
@@ -82,6 +91,21 @@ def run():  # Função principal para pré-processar o conjunto de dados.
             # Carrega o áudio
             name = v.split(".")[0]  # Extrai o nome (sem extensão) do nome do arquivo de vídeo.
             a = f"{audio_root}/{dataset_name}/{name}.wav"  # Constrói o caminho para o arquivo de áudio correspondente.
+
+            # Transcrição de áudio usando a biblioteca Whisper
+            try:
+                model = whisper.load_model("base")  # Carrega o modelo Whisper (ajuste o tamanho do modelo conforme necessário)
+                result = model.transcribe(a) # Realiza a transcrição do arquivo de áudio
+                audio_transcription = result["text"] # Extrai o texto da transcrição do resultado
+                print(f"Audio transcription for {a}: {audio_transcription}") # Imprime a transcrição para fins de depuração
+
+                # Salva a transcrição em um arquivo (opcional, mas recomendado)
+                with open(f"{output_root}/{dataset_name}/{name}_audio_transcription.txt", "w") as f:
+                    f.write(audio_transcription) # Escreve a transcrição no arquivo
+
+            except Exception as e: # Captura exceções que possam ocorrer durante a transcrição
+                print(f"Error transcribing audio {a}: {e}") # Imprime uma mensagem de erro se ocorrer alguma exceção
+                audio_transcription = ""  # Define a transcrição como uma string vazia caso ocorra um erro
 
             group = 0  # Contador para o grupo de imagens de saída.
             get_spectrogram(a)  # Gera e salva o Mel-espectrograma para o áudio.
