@@ -87,6 +87,9 @@ def run():  # Função principal para pré-processar o conjunto de dados.
             get_spectrogram(a)  # Gera e salva o Mel-espectrograma para o áudio.
             mel = plt.imread("./temp/mel.png") * 255  # Carrega o Mel-espectrograma; a escala por 255 parece converter para uint8.
             mel = mel.astype(np.uint8)  # Converte o espectrograma para o tipo de dado uint8 (inteiro sem sinal de 8 bits).
+            if frame_count == 0:
+                print(f"Error: Could not read frame count from video {v}. Skipping...")
+                continue  # Skip to the next video
             mapping = mel.shape[1] / frame_count  # Calcula um fator de escala para mapear o tempo do áudio para os quadros do vídeo.
             for i in range(len(frame_list)):  # Itera pelos quadros de vídeo extraídos.
                 idx = i % WINDOW_LEN  # Obtém o índice dentro da janela atual.
