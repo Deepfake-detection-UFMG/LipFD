@@ -5,7 +5,8 @@ import librosa  # Importa o librosa para análise e manipulação de áudio.
 import matplotlib.pyplot as plt  # Importa o Matplotlib para plotar e salvar imagens.
 from tqdm import tqdm  # Importa tqdm para exibir barras de progresso em loops.
 from librosa import feature as audio  # Importa o módulo de features do librosa, renomeado como 'audio' para conveniência.
-import whisper
+import whisper # Modelo Whisper da OpenAI para reconhecimento de fala
+from auto_avsr import AutoAVSR # Auto-AVSR (Reconhecimento de Fala Áudio-Visual)
 
 """
 Estrutura do conjunto de dados AVLips:
@@ -44,6 +45,21 @@ def transcribe_audio(audio_file):
         print(f"Erro ao transcrever o áudio {audio_file}: {e}")  # Imprime uma mensagem de erro se ocorrer alguma exceção
         return ""  # Retorna uma string vazia se ocorrer um erro
 
+def get_auto_avsr_transcription(video_file):
+    """Transcreve o vídeo usando Auto-AVSR."""
+    try:
+        # Inicializar o modelo Auto-AVSR (ajuste os parâmetros conforme necessário)
+        avsr_model = AutoAVSR()
+        
+        # Realizar a transcrição do vídeo
+        transcription = avsr_model.transcribe(video_file)
+        
+        return transcription
+    except Exception as e:
+        # Imprimir mensagem de erro se a transcrição falhar
+        print(f"Erro ao transcrever o vídeo {video_file} com Auto-AVSR: {e}")
+        return ""
+
 def run():  # Função principal para pré-processar o conjunto de dados.
     i = 0  # Contador para o número de conjuntos de dados processados.
     for label, dataset_name in labels:  # Itera pelos rótulos ("0_real" e "1_fake").
@@ -57,6 +73,14 @@ def run():  # Função principal para pré-processar o conjunto de dados.
         print(f"Processando {dataset_name}...")  # Imprime uma mensagem indicando qual conjunto de dados está sendo processado.
         for j in tqdm(range(len(video_list))):  # Itera pela lista de arquivos de vídeo, usando tqdm para uma barra de progresso.
             v = video_list[j]  # Obtém o nome do arquivo do vídeo atual.
+
+            # Transcrição do video            
+            video_path = f"{root}/{v}" # Construir o caminho completo do arquivo de vídeo, combinando o diretório raiz (root) e o nome do arquivo (v)
+            avsr_transcription = get_auto_avsr_transcription(video_path) # Chamar a função get_auto_avsr_transcription para obter a transcrição do vídeo usando o modelo Auto-AVSR
+            name = v.split(".")[0] # Extrair o nome do arquivo de vídeo (sem a extensão)
+            with open(f"{output_root}/{dataset_name}/{name}_avsr_transcription.txt", "w") as f: # Salvar a transcrição do Auto-AVSR em um arquivo de texto no diretório de saída (output_root)
+                f.write(avsr_transcription)
+            
             # Carrega o vídeo
             video_capture = cv2.VideoCapture(f"{root}/{v}")  # Abre o arquivo de vídeo usando OpenCV.
             fps = video_capture.get(cv2.CAP_PROP_FPS)  # Obtém os quadros por segundo (fps) do vídeo.
@@ -134,7 +158,6 @@ def run():  # Função principal para pré-processar o conjunto de dados.
                         print(f"ValueError: {name}")  # Imprime uma mensagem de erro.
                         continue  # Pula para a próxima iteração.
         i += 1  # Incrementa o contador de conjuntos de dados.
-
 
 if __name__ == "__main__":  # Verifica se o script é o programa principal sendo executado (não importado como um módulo).
     if not os.path.exists(output_root):  # Verifica se o diretório de saída existe.
