@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt  # Importa o Matplotlib para plotar e salvar ima
 from tqdm import tqdm  # Importa tqdm para exibir barras de progresso em loops.
 from librosa import feature as audio  # Importa o módulo de features do librosa, renomeado como 'audio' para conveniência.
 import whisper # Modelo Whisper da OpenAI para reconhecimento de fala
-from auto_avsr import AutoAVSR # Auto-AVSR (Reconhecimento de Fala Áudio-Visual)
+from auto_avsr.preparation.data.data_module import AVSRDataLoader
+from auto_avsr.preparation.utils import save_vid_aud_txt
+from auto_avsr.preparation.transforms import TextTransform
 
 """
 Estrutura do conjunto de dados AVLips:
@@ -48,15 +50,45 @@ def transcribe_audio(audio_file):
 def get_auto_avsr_transcription(video_file):
     """Transcreve o vídeo usando Auto-AVSR."""
     try:
-        # Inicializar o modelo Auto-AVSR (ajuste os parâmetros conforme necessário)
-        avsr_model = AutoAVSR()
+        # Initialize video and audio data loaders
+        video_loader = AVSRDataLoader(modality="video", detector="retinaface", convert_gray=False)
+        audio_loader = AVSRDataLoader(modality="audio")
         
-        # Realizar a transcrição do vídeo
-        transcription = avsr_model.transcribe(video_file)
-        
+        # Initialize TextTransform
+        text_transform = TextTransform()
+
+        # Load video and audio data
+        video_data = video_loader.load_data(video_file)
+        #audio_data = audio_loader.load_data(video_file)
+
+        # Perform transcription
+        transcription = video_loader.transcribe(video_file)
+
+        # Save processed data and transcription
+        #output_dir = 'root_dir/cstm/cstm_video_seg24s'
+        #os.makedirs(output_dir, exist_ok=True)
+        #output_video_path = os.path.join(output_dir, os.path.basename(video_file))
+        #output_audio_path = os.path.join(output_dir, os.path.splitext(os.path.basename(video_file))[0] + '.wav')
+        #output_text_path = f'root_dir/cstm/cstm_text_seg24s/{os.path.splitext(os.path.basename(video_file))[0]}.txt'
+
+        #save_vid_aud_txt(output_video_path, output_audio_path, output_text_path, 
+        #                 video_data, audio_data, transcription, 
+        #                 video_fps=25, audio_sample_rate=16000)
+
+        # Create label file entry
+        #input_length = len(video_data)
+        #token_id = text_transform.tokenize(transcription)
+        #rel_path = f"cstm_video_seg24s/{os.path.basename(video_file)}"
+        #label_entry = f"cstm,{rel_path},{input_length},{','.join(map(str, token_id))}"
+
+        # Save to labels file
+        #os.makedirs('root_dir/labels', exist_ok=True)
+        #with open('root_dir/labels/cstm_transcript_lengths_seg24s.csv', 'a') as f:
+        #    f.write(label_entry + '\n')
+
         return transcription
     except Exception as e:
-        # Imprimir mensagem de erro se a transcrição falhar
+        # Print error message if transcription fails
         print(f"Erro ao transcrever o vídeo {video_file} com Auto-AVSR: {e}")
         return ""
 
